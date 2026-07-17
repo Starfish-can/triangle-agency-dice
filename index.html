@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AgencyOS - Triangle Agency Dice Pool</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 换回 P2P (PeerJS) 方案 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
     <script>
         tailwind.config = {
@@ -13,22 +12,18 @@
         }
     </script>
     <style>
-        /* 亮色模式：经典的冷白纸张底色 + 浅红色网格线 */
         .agency-bg-light {
             background-color: #faf9f6;
             background-image: linear-gradient(rgba(220, 38, 38, 0.02) 1px, transparent 1px),
                               linear-gradient(90deg, rgba(220, 38, 38, 0.02) 1px, transparent 1px);
             background-size: 20px 20px;
         }
-        /* 暗色模式：深邃的红黑色底色 + 微弱红网格线 */
         .dark .agency-bg-dark {
             background-color: #0c0505;
             background-image: linear-gradient(rgba(220, 38, 38, 0.03) 1px, transparent 1px),
                               linear-gradient(90deg, rgba(220, 38, 38, 0.03) 1px, transparent 1px);
             background-size: 20px 20px;
         }
-        
-        /* 红色三角形骰子（现实改写） */
         .triangle-dice-red {
             width: 0;
             height: 0;
@@ -39,7 +34,6 @@
             filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
             transition: transform 0.2s ease;
         }
-        /* 蓝色三角形骰子（异常能力） */
         .triangle-dice-blue {
             width: 0;
             height: 0;
@@ -50,7 +44,6 @@
             filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
             transition: transform 0.2s ease;
         }
-        
         .triangle-dice-red:hover, .triangle-dice-blue:hover {
             transform: scale(1.1);
         }
@@ -68,36 +61,30 @@
 </head>
 <body id="main-body" class="agency-bg-light text-neutral-900 min-h-screen flex flex-col font-mono selection:bg-red-600 selection:text-white transition-colors duration-350">
 
-    <!-- 顶部导航栏 -->
     <header class="border-b-2 border-neutral-900 bg-white dark:bg-neutral-950 dark:border-red-950 px-6 py-4 flex flex-wrap gap-4 justify-between items-center transition-colors">
         <div class="flex items-center gap-3">
             <div class="bg-red-600 text-white dark:text-black px-2.5 py-1 font-black tracking-tighter text-sm rounded-sm uppercase">▲ AgencyOS</div>
             <h1 class="text-md font-black tracking-widest text-neutral-900 dark:text-red-500">PUBLIC TERMINAL // 公共特工骰池</h1>
-            
-            <!-- 风格切换按钮 -->
             <button onclick="toggleTheme()" id="theme-btn" class="ml-2 text-xs bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-900 dark:hover:bg-neutral-850 text-neutral-700 dark:text-neutral-300 px-2.5 py-1 rounded border border-neutral-300 dark:border-neutral-800 transition flex items-center gap-1.5">
                 ☀ 亮色特工终端
             </button>
         </div>
-        <!-- 联机状态栏已被应用户要求完全隐藏（逻辑依然在后台静默运行） -->
         <div id="connection-status" class="hidden">LOCAL</div>
     </header>
 
     <main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 flex flex-col md:flex-row gap-6">
         
-        <!-- 左侧：特工控制台 -->
+        <!-- 左侧 -->
         <div class="w-full md:w-1/2 flex flex-col gap-6">
             <div class="bg-white dark:bg-neutral-950 border-2 border-neutral-900 dark:border-red-950/60 rounded p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-none flex flex-col justify-between transition-colors">
                 <div>
                     <h2 class="text-sm font-black mb-4 text-neutral-950 dark:text-red-500 border-b-2 border-neutral-900 dark:border-red-950 pb-2 tracking-wider">▲ 特工控制台 / AGENT CONSOLE</h2>
                     
-                    <!-- 特工代号设置 -->
                     <div class="mb-5">
                         <label class="block text-xs font-black text-neutral-500 dark:text-neutral-400 mb-1.5">特工代号 / CODE NAME</label>
                         <input type="text" id="username" placeholder="未命名特工 (UNNAMED)" onchange="saveName()" class="w-full bg-neutral-50 dark:bg-black border border-neutral-300 dark:border-neutral-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-red-650 dark:focus:border-red-600 text-neutral-900 dark:text-red-200 transition">
                     </div>
 
-                    <!-- 掷骰类型选择 -->
                     <div class="mb-5">
                         <label class="block text-xs font-black text-neutral-500 dark:text-neutral-400 mb-2">掷骰类型 / DICE ROLL TYPE</label>
                         <div class="grid grid-cols-2 gap-3">
@@ -112,16 +99,14 @@
                         </div>
                     </div>
 
-                    <!-- 燃尽数设置 -->
                     <div class="mb-6 bg-neutral-50 dark:bg-black p-4 rounded border border-neutral-250 dark:border-neutral-900 transition-colors">
                         <label class="block text-xs text-neutral-600 dark:text-neutral-400 font-black mb-2">当前燃尽值 / BURNOUT VALUE</label>
                         <div class="flex flex-wrap items-center gap-3">
-                            <input type="number" id="burnout-value" min="0" max="6" value="1" class="w-20 bg-white dark:bg-neutral-950 border-2 border-neutral-900 dark:border-red-950 text-center text-lg font-black text-red-650 dark:text-red-500 rounded p-2 focus:outline-none focus:border-red-600">
+                            <input type="number" id="burnout-value" min="0" max="6" value="1" class="w-20 bg-white dark:bg-neutral-950 border-2 border-neutral-900 dark:border-red-950 text-center text-lg font-black text-red-650 dark:text-red-500 rounded p-2 focus:outline-none focus:border-red-650">
                             <span class="text-xs text-neutral-500 dark:text-neutral-400">（判定成功标准：掷出的 “3” 数量大于或等于该数值 + 1）</span>
                         </div>
                     </div>
 
-                    <!-- 投掷按钮 -->
                     <button onclick="rollAgencyDice()" class="w-full bg-red-600 hover:bg-red-500 text-white font-black py-5 rounded text-lg tracking-widest transition shadow-md border-b-4 border-red-800 active:border-b-0 uppercase">
                         ▲ 特工掷骰 (6D4)
                     </button>
@@ -135,7 +120,6 @@
                         </label>
                     </div>
 
-                    <!-- 清理终端 -->
                     <div class="border-t border-neutral-300 dark:border-red-950 pt-4">
                         <button onclick="clearAllLogs()" class="w-full bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-900 dark:hover:bg-neutral-850 border border-neutral-300 dark:border-red-950 text-neutral-600 dark:text-neutral-400 py-2 rounded text-xs font-bold transition">
                             格式化本地终端记录
@@ -145,13 +129,12 @@
             </div>
         </div>
 
-        <!-- 右侧：实时特工日志 -->
+        <!-- 右侧 -->
         <div class="w-full md:w-1/2 flex flex-col bg-white dark:bg-neutral-950 border-2 border-neutral-900 dark:border-red-950/60 rounded p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-none h-[550px] md:h-auto transition-colors">
             <div class="flex justify-between items-center mb-4 border-b-2 border-neutral-900 dark:border-red-950 pb-2">
                 <h2 class="text-sm font-black text-neutral-950 dark:text-red-500 tracking-wider">
                     特工日志 / AGENCY ACTIVITY LOG
                 </h2>
-                <!-- 修改了重连的按钮样式，移除了之前的 emoji，更加契合 AgencyOS 系统风格 -->
                 <button onclick="initP2PNetwork()" class="text-[10px] uppercase font-black tracking-widest bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-900 dark:hover:bg-neutral-850 border border-neutral-300 dark:border-neutral-800 px-2.5 py-1 rounded transition text-neutral-600 dark:text-neutral-400">
                     // REBOOT_SIGNAL
                 </button>
@@ -164,18 +147,18 @@
     </main>
 
     <footer class="border-t border-neutral-300 dark:border-neutral-950 bg-neutral-50 dark:bg-black text-center py-4 text-[10px] text-neutral-500 dark:text-neutral-700 uppercase tracking-widest transition-colors">
-        AgencyOS v3.85 // Peer-to-Peer Intercommunication Module // LocalStorage Enabled
+        AgencyOS v3.86 // Peer-to-Peer Intercommunication Module // Bug-Fixed
     </footer>
 
     <script>
         let myName = "未命名特工";
         let isDarkMode = false;
+        let isInitializing = true; // 状态锁：阻止初始化过程中的重复写入
         
-        // P2P 核心连接句柄
         let peer = null;
-        let connections = new Map(); // 存储所有的连接映射
-        const ROOM_PREFIX = "agency_public_pool_v35_"; 
-        const STORAGE_KEY = "agency_dice_history_v3";
+        let connections = new Map(); 
+        const ROOM_PREFIX = "agency_public_pool_v36_"; // 升级基线版本，彻底隔离旧脏数据
+        const STORAGE_KEY = "agency_dice_history_v4";
 
         function toggleTheme() {
             const body = document.getElementById('main-body');
@@ -195,24 +178,31 @@
             }
         }
 
+        // 严格控制初始化流
         window.onload = function() {
-            // 1. 优先初始化主题
+            isInitializing = true;
+
+            // 1. 优先恢复主题
             const savedTheme = localStorage.getItem('agency_theme');
             if (savedTheme === 'dark') { toggleTheme(); }
 
-            // 2. 【Bug修复的关键】：先确定昵称，再读历史数据
+            // 2. 强行先从 LocalStorage 锁定正确的昵称，杜绝解析时间差
             const savedName = localStorage.getItem('agency_nick');
-            if (savedName) {
-                myName = savedName;
+            if (savedName && savedName.trim() !== "") {
+                myName = savedName.trim();
                 document.getElementById('username').value = myName;
             } else {
                 myName = "未命名特工";
+                document.getElementById('username').value = "";
             }
 
-            // 3. 纯展现读取本地历史记录（绝不会产生多余的“未命名”写入）
+            // 3. 渲染本地历史数据（纯展现，无任何写入动作）
             loadDiceHistory();
 
-            // 4. 静默启动 P2P 广播网络
+            // 4. 放开初始化锁
+            isInitializing = false;
+
+            // 5. 最后静默启动 P2P 网络，此时 myName 已绝对安全
             initP2PNetwork();
         };
 
@@ -224,30 +214,26 @@
 
         // ================= P2P 网络互通架构 =================
         function initP2PNetwork() {
-            // 生成当前客户端专属的 PeerID
+            if (peer) {
+                try { peer.destroy(); } catch(e){}
+            }
+
             const myPeerId = ROOM_PREFIX + Math.random().toString(36).substr(2, 9);
-            
-            // 实例化 Peer
             peer = new Peer(myPeerId);
 
             peer.on('open', (id) => {
-                // 静默连上公网握手节点，开始发现其他在线特工
                 discoverAndConnectPeers();
             });
 
-            // 监听外来连接（当别的特工发现你并连过来时触发）
             peer.on('connection', (conn) => {
                 setupConnectionListeners(conn);
             });
         }
 
-        // 寻找公网里带相同前缀的在线客户端
         function discoverAndConnectPeers() {
-            // 利用 PeerJS 官方开放的公开信道源接口扫描局域节点
             peer.listAllPeers((peers) => {
                 if (!peers) return;
                 peers.forEach(peerId => {
-                    // 如果对方带有共同的房间前缀，且不是我自己，同时还没建立过连接，就主动连过去
                     if (peerId.startsWith(ROOM_PREFIX) && peerId !== peer.id && !connections.has(peerId)) {
                         const conn = peer.connect(peerId);
                         setupConnectionListeners(conn);
@@ -262,24 +248,17 @@
             });
 
             conn.on('data', (data) => {
+                // 收到他人数据，交由核心网路分发器
                 handleIncomingRoll(data);
             });
 
-            conn.on('close', () => {
-                connections.delete(conn.peer);
-            });
-            
-            conn.on('error', () => {
-                connections.delete(conn.peer);
-            });
+            conn.on('close', () => { connections.delete(conn.peer); });
+            conn.on('error', () => { connections.delete(conn.peer); });
         }
 
-        // 广播向外推数据
         function broadcastData(data) {
             connections.forEach(conn => {
-                if (conn.open) {
-                    conn.send(data);
-                }
+                if (conn.open) { conn.send(data); }
             });
         }
 
@@ -314,31 +293,31 @@
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
             };
 
-            // 1. 本地率先渲染
             renderRoll(rollData, true, false);
-            
-            // 2. 刻进自己的本地存储
             saveToHistory(rollData);
 
-            // 3. 只要不是暗骰且网络通道里有人，顺着管道直接推送
             if (!rollData.isSecret) {
                 broadcastData(rollData);
             }
         }
 
         function handleIncomingRoll(data) {
+            if (isInitializing) return; // 初始化时拒绝接收外部推流，防止被老数据污染
+            
             if (data.isSecret) {
                 renderSecretNotice(data.sender, data.timestamp);
             } else {
                 renderRoll(data, false, false);
-                saveToHistory(data); // 别人传过来的公开结果，无缝存入本地历史记录
+                saveToHistory(data); 
             }
         }
 
-        // ================= 存储持久化与纯粹渲染 (修复刷出未命名Bug) =================
+        // ================= 存储持久化与精确渲染 (彻底切断Bug) =================
         function saveToHistory(rollData) {
+            // 核心防御线：如果是初始化状态或收到自己改名前的幽灵数据，直接丢弃
+            if (isInitializing) return; 
+            
             let history = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-            // 精准校验 ID，避免任何多重渲染引发的重复写入
             if (!history.some(item => item.id === rollData.id)) {
                 history.unshift(rollData);
                 if (history.length > 40) history.pop();
@@ -352,7 +331,7 @@
             
             if (history.length > 0) {
                 container.innerHTML = '';
-                // 反转后依次 append，最新一条永远在顶端，仅用于历史数据重绘展示，不写磁盘
+                // 反转渲染以维持最新记录在顶端，此时绝对不调用 saveToHistory
                 [...history].reverse().forEach(data => {
                     const isSelf = (data.sender === myName);
                     renderRoll(data, isSelf, true);
@@ -368,15 +347,13 @@
 
             const div = document.createElement('div');
             const isRed = (data.rollType === 'reality');
-            
             let cardStyle = "";
             let diceClass = "";
             
             if (isRed) {
                 cardStyle = data.isSuccess 
                     ? "border-red-400/80 bg-red-50/40 dark:border-red-950/50 dark:bg-red-950/10" 
-                    : "border-neutral-350 bg-neutral-50 dark:border-neutral-900 dark:bg-neutral-950/50";
-                
+                    : "border-neutral-355 bg-neutral-50 dark:border-neutral-900 dark:bg-neutral-950/50";
                 if (data.isThreefold) {
                     cardStyle = "border-red-600 bg-red-50/90 dark:border-red-500/50 dark:bg-red-950/30 shadow-[4px_4px_0px_0px_#dc2626] dark:shadow-none";
                 }
@@ -384,8 +361,7 @@
             } else {
                 cardStyle = data.isSuccess 
                     ? "border-blue-400/80 bg-blue-50/40 dark:border-blue-950/50 dark:bg-blue-950/10" 
-                    : "border-neutral-350 bg-neutral-50 dark:border-neutral-900 dark:bg-neutral-950/50";
-                
+                    : "border-neutral-355 bg-neutral-50 dark:border-neutral-900 dark:bg-neutral-950/50";
                 if (data.isThreefold) {
                     cardStyle = "border-blue-600 bg-blue-50/90 dark:border-blue-500/50 dark:bg-blue-950/30 shadow-[4px_4px_0px_0px_#2563eb] dark:shadow-none";
                 }
@@ -393,58 +369,43 @@
             }
 
             div.className = `p-4 rounded border-2 ${cardStyle} flex flex-col gap-3 text-sm transition-colors duration-250`;
-            
-            let tag = "";
-            if (isSelf) {
-                tag = `<span class="text-[10px] bg-neutral-900 dark:bg-white/10 text-white dark:text-white px-1.5 py-0.5 rounded font-bold tracking-widest">YOU</span>`;
-            }
+            let tag = isSelf ? `<span class="text-[10px] bg-neutral-900 dark:bg-white/10 text-white px-1.5 py-0.5 rounded font-bold tracking-widest">YOU</span>` : "";
 
             const labelText = isRed ? "现实改写 // ASK THE AGENCY" : "异常能力 // ANOMALY ABILITY";
             const labelColor = isRed ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400";
             
             let diceHtml = `<div class="flex flex-wrap gap-4 my-1.5">`;
             data.rolls.forEach(val => {
-                diceHtml += `
-                    <div class="${diceClass}">
-                        <span class="triangle-text">${val}</span>
-                    </div>
-                `;
+                diceHtml += `<div class="${diceClass}"><span class="triangle-text">${val}</span></div>`;
             });
             diceHtml += `</div>`;
 
             let statusBadge = "";
             if (data.isThreefold) {
                 const sublimationBg = isRed ? "bg-red-600 dark:bg-red-950 border-red-700 dark:border-red-500 text-white dark:text-red-300" : "bg-blue-600 dark:bg-blue-950 border-blue-700 dark:border-blue-500 text-white dark:text-blue-300";
-                statusBadge = `
-                    <div class="mt-2 text-center py-2.5 ${sublimationBg} border rounded font-black text-xs tracking-widest">
-                        ▲▲▲ 三重升华 // TRISENDENCE ▲▲▲
-                    </div>`;
+                statusBadge = `<div class="mt-2 text-center py-2.5 ${sublimationBg} border rounded font-black text-xs tracking-widest">▲▲▲ 三重升华 // TRISENDENCE ▲▲▲</div>`;
             } else if (data.isSuccess) {
                 const successBg = isRed ? "bg-red-100 dark:bg-red-950/20 border-red-300 dark:border-red-900/40 text-red-650" : "bg-blue-100 dark:bg-blue-950/20 border-blue-300 dark:border-blue-900/40 text-blue-650";
                 statusBadge = `<div class="mt-2 text-center py-1 ${successBg} dark:text-neutral-300 border rounded text-xs font-black tracking-widest">▼ 判定成功 // SUCCESS</div>`;
             } else {
-                statusBadge = `<div class="mt-2 text-center py-1 bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-800 rounded text-neutral-550 dark:text-neutral-500 text-xs font-black tracking-widest">▲ 判定失败 // FAILURE</div>`;
+                statusBadge = `<div class="mt-2 text-center py-1 bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-800 rounded text-neutral-500 text-xs font-black tracking-widest">▲ 判定失败 // FAILURE</div>`;
             }
 
             div.innerHTML = `
-                <div class="flex justify-between items-center text-xs text-neutral-450 dark:text-neutral-555">
+                <div class="flex justify-between items-center text-xs text-neutral-500">
                     <span class="font-black flex items-center gap-2 uppercase text-neutral-800 dark:text-neutral-300 tracking-wider">${data.sender} ${tag}</span>
                     <span class="font-bold ${labelColor}">${labelText}</span>
                 </div>
-                
                 ${diceHtml}
-
                 <div class="bg-white/80 dark:bg-black/40 p-2.5 rounded border border-neutral-200 dark:border-neutral-900/50 text-xs text-neutral-600 dark:text-neutral-400 mt-1 flex justify-between items-center transition-colors">
                     <div>
                         检测到 “3” 的数量：<span class="${isRed ? 'text-red-650 dark:text-red-500' : 'text-blue-650 dark:text-blue-500'} font-black">${data.countOfThree}</span> 
-                        <span class="mx-1">/</span> 
-                        当前燃尽值：<span class="text-neutral-555 dark:text-neutral-400 font-black">${data.burnout}</span>
+                        <span class="mx-1">/</span> 当前燃尽值：<span class="text-neutral-400 font-black">${data.burnout}</span>
                     </div>
                     <div class="text-right">
-                        净判定：<span class="${data.netResult >= 1 ? (isRed ? 'text-red-600 dark:text-red-500' : 'text-blue-600 dark:text-blue-500') : 'text-neutral-550'} font-black text-sm">${data.netResult >= 0 ? '+' + data.netResult : data.netResult}</span>
+                        净判定：<span class="${data.netResult >= 1 ? (isRed ? 'text-red-600 dark:text-red-500' : 'text-blue-600 dark:text-blue-500') : 'text-neutral-500'} font-black text-sm">${data.netResult >= 0 ? '+' + data.netResult : data.netResult}</span>
                     </div>
                 </div>
-
                 ${statusBadge}
             `;
             
@@ -460,13 +421,9 @@
             if (container.querySelector('.text-neutral-400') || container.querySelector('.text-neutral-650')) {
                 container.innerHTML = '';
             }
-
             const div = document.createElement('div');
-            div.className = "p-3 rounded border border-neutral-300 dark:border-neutral-900 bg-neutral-100/40 dark:bg-neutral-950/20 text-xs text-neutral-555 flex justify-between items-center";
-            div.innerHTML = `
-                <span>${sender} 进行了一次暗骰...</span>
-                <span>${timestamp}</span>
-            `;
+            div.className = "p-3 rounded border border-neutral-300 dark:border-neutral-900 bg-neutral-100/40 dark:bg-neutral-950/20 text-xs text-neutral-500 flex justify-between items-center";
+            div.innerHTML = `<span>${sender} 进行了一次暗骰...</span><span>${timestamp}</span>`;
             container.insertBefore(div, container.firstChild);
         }
 
@@ -475,9 +432,8 @@
             if (container.querySelector('.text-neutral-400') || container.querySelector('.text-neutral-650')) {
                 container.innerHTML = '';
             }
-
             const div = document.createElement('div');
-            div.className = "text-center text-[10px] text-red-700/80 dark:text-red-500/60 py-1.5 bg-red-105/10 dark:bg-red-950/5 rounded border border-red-300/40 dark:border-red-900/10";
+            div.className = "text-center text-[10px] text-red-700/80 dark:text-red-500/60 py-1.5 bg-red-100/10 dark:bg-red-950/5 rounded border border-red-300/40 dark:border-red-900/10";
             div.innerText = `▲ SYS_LOG: ${text}`;
             container.insertBefore(div, container.firstChild);
         }
