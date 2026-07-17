@@ -2,7 +2,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 🎯 移动端竖屏视口优化补丁：解决手机显示奇怪的问题 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AgencyOS - Triangle Agency Dice Pool</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
@@ -241,26 +242,44 @@
             }
 
             const myPeerId = ROOM_PREFIX + Math.random().toString(36).substr(2, 9);
-            peer = new Peer(myPeerId);
+            
+            // 🎯 【核心修正位置】：添加加密传输安全配置（HTTPS 兼容补丁）
+            peer = new Peer(myPeerId, {
+                host: '0.peerjs.com',
+                port: 443,
+                path: '/',
+                secure: true
+            });
 
             peer.on('open', (id) => {
+                appendSystemLog("已安全接入 AgencyOS 中枢网关，正在扫描在线特工...");
                 discoverAndConnectPeers();
             });
 
             peer.on('connection', (conn) => {
                 setupConnectionListeners(conn);
             });
+
+            peer.on('error', (err) => {
+                console.error("PeerJS Error: ", err);
+                appendSystemLog("网关连接异常，正在尝试重连...");
+            });
         }
 
         function discoverAndConnectPeers() {
             peer.listAllPeers((peers) => {
                 if (!peers) return;
+                let count = 0;
                 peers.forEach(peerId => {
                     if (peerId.startsWith(ROOM_PREFIX) && peerId !== peer.id && !connections.has(peerId)) {
                         const conn = peer.connect(peerId);
                         setupConnectionListeners(conn);
+                        count++;
                     }
                 });
+                if (count > 0) {
+                    appendSystemLog(`成功建立 ${count} 个特工终端桥接。`);
+                }
             });
         }
 
@@ -314,7 +333,7 @@
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
             };
 
-            // 【核心修正】强制从 localStorage 加载最新全局历史，确保队列不残缺
+            // 强制从 localStorage 加载最新全局历史，确保队列不残缺
             syncHistoryFromStorage();
 
             // 1. 将新数据塞到队列最前头
@@ -355,7 +374,7 @@
             const container = document.getElementById('log-container');
             if (!container) return;
 
-            // 【核心修正】渲染动作发起时，必须强行从 LocalStorage 同步数据，避免内存变量 activeHistory 在局部被恶意置空
+            // 渲染动作发起时，必须强行从 LocalStorage 同步数据
             syncHistoryFromStorage();
 
             if (activeHistory.length === 0) {
