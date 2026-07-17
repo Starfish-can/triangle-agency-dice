@@ -147,18 +147,18 @@
     </main>
 
     <footer class="border-t border-neutral-300 dark:border-neutral-950 bg-neutral-50 dark:bg-black text-center py-4 text-[10px] text-neutral-500 dark:text-neutral-700 uppercase tracking-widest transition-colors">
-        AgencyOS v3.86 // Peer-to-Peer Intercommunication Module // Bug-Fixed
+        AgencyOS v3.87 // Peer-to-Peer Intercommunication Module // Multi-Log Fixed
     </footer>
 
     <script>
         let myName = "未命名特工";
         let isDarkMode = false;
-        let isInitializing = true; // 状态锁：阻止初始化过程中的重复写入
+        let isInitializing = true; 
         
         let peer = null;
         let connections = new Map(); 
-        const ROOM_PREFIX = "agency_public_pool_v36_"; // 升级基线版本，彻底隔离旧脏数据
-        const STORAGE_KEY = "agency_dice_history_v4";
+        const ROOM_PREFIX = "agency_public_pool_v37_"; // 再次升级版本，彻底刷新缓存，保证日志恢复正常
+        const STORAGE_KEY = "agency_dice_history_v5";
 
         function toggleTheme() {
             const body = document.getElementById('main-body');
@@ -178,15 +178,15 @@
             }
         }
 
-        // 严格控制初始化流
+        // 严格的初始化逻辑
         window.onload = function() {
             isInitializing = true;
 
-            // 1. 优先恢复主题
+            // 1. 恢复主题
             const savedTheme = localStorage.getItem('agency_theme');
             if (savedTheme === 'dark') { toggleTheme(); }
 
-            // 2. 强行先从 LocalStorage 锁定正确的昵称，杜绝解析时间差
+            // 2. 锁定昵称
             const savedName = localStorage.getItem('agency_nick');
             if (savedName && savedName.trim() !== "") {
                 myName = savedName.trim();
@@ -196,13 +196,13 @@
                 document.getElementById('username').value = "";
             }
 
-            // 3. 渲染本地历史数据（纯展现，无任何写入动作）
+            // 3. 渲染本地历史数据
             loadDiceHistory();
 
-            // 4. 放开初始化锁
+            // 4. 放开锁
             isInitializing = false;
 
-            // 5. 最后静默启动 P2P 网络，此时 myName 已绝对安全
+            // 5. 开启网络
             initP2PNetwork();
         };
 
@@ -212,7 +212,7 @@
             localStorage.setItem('agency_nick', myName);
         }
 
-        // ================= P2P 网络互通架构 =================
+        // ================= P2P 网络模块 =================
         function initP2PNetwork() {
             if (peer) {
                 try { peer.destroy(); } catch(e){}
@@ -248,7 +248,6 @@
             });
 
             conn.on('data', (data) => {
-                // 收到他人数据，交由核心网路分发器
                 handleIncomingRoll(data);
             });
 
@@ -262,7 +261,7 @@
             });
         }
 
-        // ================= 核心判定与投掷逻辑 =================
+        // ================= 核心判定与投掷 =================
         function rollAgencyDice() {
             const burnout = parseInt(document.getElementById('burnout-value').value) || 0;
             const rollType = document.querySelector('input[name="roll-type"]:checked').value;
@@ -293,7 +292,8 @@
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
             };
 
-            renderRoll(rollData, true, false);
+            // 渲染并保存
+            renderRoll(rollData, true);
             saveToHistory(rollData);
 
             if (!rollData.isSecret) {
@@ -302,25 +302,25 @@
         }
 
         function handleIncomingRoll(data) {
-            if (isInitializing) return; // 初始化时拒绝接收外部推流，防止被老数据污染
+            if (isInitializing) return; 
             
             if (data.isSecret) {
                 renderSecretNotice(data.sender, data.timestamp);
             } else {
-                renderRoll(data, false, false);
+                renderRoll(data, false);
                 saveToHistory(data); 
             }
         }
 
-        // ================= 存储持久化与精确渲染 (彻底切断Bug) =================
+        // ================= 数据写入与持久化渲染 =================
         function saveToHistory(rollData) {
-            // 核心防御线：如果是初始化状态或收到自己改名前的幽灵数据，直接丢弃
             if (isInitializing) return; 
             
             let history = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+            // 防重
             if (!history.some(item => item.id === rollData.id)) {
-                history.unshift(rollData);
-                if (history.length > 40) history.pop();
+                history.unshift(rollData); // 最新的放前面
+                if (history.length > 40) history.pop(); // 最多存 40 条
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
             }
         }
@@ -331,20 +331,35 @@
             
             if (history.length > 0) {
                 container.innerHTML = '';
-                // 反转渲染以维持最新记录在顶端，此时绝对不调用 saveToHistory
-                [...history].reverse().forEach(data => {
+                // 历史记录渲染：旧数据先追加，新数据后追加，保证顺序
+                history.forEach(data => {
                     const isSelf = (data.sender === myName);
-                    renderRoll(data, isSelf, true);
+                    appendRollToBottom(data, isSelf);
                 });
             }
         }
 
-        function renderRoll(data, isSelf = false, isHistoryRestore = false) {
+        // 辅助渲染：新掷骰子（插在最顶部）
+        function renderRoll(data, isSelf = false) {
             const container = document.getElementById('log-container');
             if (container.querySelector('.text-neutral-400') || container.querySelector('.text-neutral-650')) {
                 container.innerHTML = '';
             }
 
+            const div = createRollElement(data, isSelf);
+            // 永远插入到最顶部！
+            container.insertBefore(div, container.firstChild);
+        }
+
+        // 辅助渲染：加载历史时（追加到最底部）
+        function appendRollToBottom(data, isSelf = false) {
+            const container = document.getElementById('log-container');
+            const div = createRollElement(data, isSelf);
+            container.appendChild(div);
+        }
+
+        // 提取核心 HTML 构造器
+        function createRollElement(data, isSelf) {
             const div = document.createElement('div');
             const isRed = (data.rollType === 'reality');
             let cardStyle = "";
@@ -408,12 +423,7 @@
                 </div>
                 ${statusBadge}
             `;
-            
-            if (isHistoryRestore) {
-                container.appendChild(div);
-            } else {
-                container.insertBefore(div, container.firstChild);
-            }
+            return div;
         }
 
         function renderSecretNotice(sender, timestamp) {
