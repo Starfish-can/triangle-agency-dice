@@ -123,9 +123,13 @@
                         </label>
                     </div>
 
-                    <div class="border-t border-neutral-300 dark:border-red-950 pt-4">
+                    <div class="border-t border-neutral-300 dark:border-red-950 pt-4 space-y-3">
                         <button onclick="clearAllLogs()" class="w-full bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-900 dark:hover:bg-neutral-850 border border-neutral-300 dark:border-red-950 text-neutral-600 dark:text-neutral-400 py-2 rounded text-xs font-bold transition">
                             格式化本地终端记录
+                        </button>
+                        <!-- 新增：清除缓存并重连 -->
+                        <button onclick="clearCacheAndReconnect()" class="w-full bg-red-600/10 hover:bg-red-600/20 border border-red-500/50 text-red-600 dark:text-red-400 py-2 rounded text-xs font-bold transition flex items-center justify-center gap-2">
+                            <span>⚠ 清除缓存并重连</span>
                         </button>
                     </div>
                 </div>
@@ -143,7 +147,6 @@
                 <div class="text-neutral-400 dark:text-neutral-650 text-center text-sm py-12">终端空闲，等待干涉下达...</div>
             </div>
         </div>
-
     </main>
 
     <footer class="border-t border-neutral-300 dark:border-neutral-950 bg-neutral-50 dark:bg-black text-center py-4 text-[10px] text-neutral-500 dark:text-neutral-700 uppercase tracking-widest transition-colors">
@@ -151,7 +154,6 @@
     </footer>
 
     <script>
-        // 🎯 注入你的 Supabase 真实配置
         const SUPABASE_URL = "https://egtudzuaahkknlvfzgrb.supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_beFak4osOEoXcoK668rFpA_t6Vki5Ol";
 
@@ -166,7 +168,6 @@
             const body = document.getElementById('main-body');
             const themeBtn = document.getElementById('theme-btn');
             isDarkMode = !isDarkMode;
-
             if (isDarkMode) {
                 document.documentElement.classList.add('dark');
                 body.className = "agency-bg-dark text-gray-100 min-h-screen flex flex-col font-mono selection:bg-red-600 selection:text-white transition-colors duration-350 dark";
@@ -192,13 +193,11 @@
         window.onload = function() {
             const savedTheme = localStorage.getItem('agency_theme');
             if (savedTheme === 'dark') { toggleTheme(); }
-
             const savedName = localStorage.getItem('agency_nick');
             if (savedName && savedName.trim() !== "") {
                 myName = savedName.trim();
                 document.getElementById('username').value = myName;
             }
-
             syncHistoryFromStorage();
             renderAllLogs();
             initSupabaseSync();
@@ -211,12 +210,9 @@
             renderAllLogs();
         }
 
-        // ================= Supabase 广播同步模块 =================
         function initSupabaseSync() {
             try {
                 supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                
-                // 监听 agency_rolls 表的 INSERT 插入操作（实现实时无记忆同步）
                 supabaseClient
                     .channel('public:agency_rolls')
                     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'agency_rolls' }, payload => {
@@ -240,30 +236,25 @@
 
         async function broadcastRoll(rollData) {
             if (!supabaseClient) return;
-            // 往数据库插一条数据触发实时订阅，即插即忘，不占用本地持久化
             const { error } = await supabaseClient
                 .from('agency_rolls')
                 .insert([{ id: rollData.id, payload: rollData }]);
             if (error) console.error("广播失败:", error);
         }
 
-        // ================= 核心判定与投掷 =================
         function rollAgencyDice() {
             const burnout = parseInt(document.getElementById('burnout-value').value) || 0;
             const rollType = document.querySelector('input[name="roll-type"]:checked').value;
             const rolls = [];
             let countOfThree = 0;
-
             for (let i = 0; i < 6; i++) {
                 const val = Math.floor(Math.random() * 4) + 1;
                 rolls.push(val);
                 if (val === 3) countOfThree++;
             }
-
             const isThreefold = (countOfThree === 3);
             const netResult = countOfThree - burnout;
             const isSuccess = isThreefold || (netResult >= 1);
-
             const rollData = {
                 id: "roll_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
                 sender: myName,
@@ -277,22 +268,15 @@
                 isSecret: document.getElementById('is-secret').checked,
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
             };
-
-            // 本地存储并渲染
             pushToLocalHistory(rollData);
-
-            // 如果不是暗骰，则进行全局广播
             if (!rollData.isSecret) {
                 broadcastRoll(rollData);
             }
         }
 
         function handleIncomingRoll(data) {
-            // 暗骰不需要同步给其它玩家
             if (data.isSecret) return;
-            // 如果是自己发出的广播，本地已经渲染过了，直接无视去重
             if (data.sender === myName) return; 
-
             pushToLocalHistory(data);
         }
 
@@ -306,18 +290,14 @@
             }
         }
 
-        // ================= 渲染引擎 =================
         function renderAllLogs() {
             const container = document.getElementById('log-container');
             if (!container) return;
-
             syncHistoryFromStorage();
-
             if (activeHistory.length === 0) {
                 container.innerHTML = '<div class="text-neutral-400 dark:text-neutral-650 text-center text-sm py-12">终端空闲，等待干涉下达...</div>';
                 return;
             }
-
             container.innerHTML = '';
             activeHistory.forEach(data => {
                 const isSelf = (data.sender === myName);
@@ -331,7 +311,6 @@
             const isRed = (data.rollType === 'reality');
             let cardStyle = "";
             let diceClass = "";
-            
             if (isRed) {
                 cardStyle = data.isSuccess 
                     ? "border-red-400/80 bg-red-50/40 dark:border-red-950/50 dark:bg-red-950/10" 
@@ -349,19 +328,15 @@
                 }
                 diceClass = "triangle-dice-blue";
             }
-
             div.className = `p-4 rounded border-2 ${cardStyle} flex flex-col gap-3 text-sm transition-colors duration-250`;
             let tag = isSelf ? `<span class="text-[10px] bg-neutral-900 dark:bg-white/10 text-white px-1.5 py-0.5 rounded font-bold tracking-widest">YOU</span>` : "";
-
             const labelText = isRed ? "现实改写 // ASK THE AGENCY" : "异常能力 // ANOMALY ABILITY";
             const labelColor = isRed ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400";
-            
             let diceHtml = `<div class="flex flex-wrap gap-4 my-1.5">`;
             data.rolls.forEach(val => {
                 diceHtml += `<div class="${diceClass}"><span class="triangle-text">${val}</span></div>`;
             });
             diceHtml += `</div>`;
-
             let statusBadge = "";
             if (data.isThreefold) {
                 const sublimationBg = isRed ? "bg-red-600 dark:bg-red-950 border-red-700 dark:border-red-500 text-white dark:text-red-300" : "bg-blue-600 dark:bg-blue-950 border-blue-700 dark:border-blue-500 text-white dark:text-blue-300";
@@ -372,7 +347,6 @@
             } else {
                 statusBadge = `<div class="mt-2 text-center py-1 bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-800 rounded text-neutral-500 text-xs font-black tracking-widest">▲ 判定失败 // FAILURE</div>`;
             }
-
             div.innerHTML = `
                 <div class="flex justify-between items-center text-xs text-neutral-500">
                     <span class="font-black flex items-center gap-2 uppercase text-neutral-800 dark:text-neutral-300 tracking-wider">${data.sender} ${tag}</span>
@@ -409,6 +383,17 @@
             localStorage.removeItem(STORAGE_KEY);
             renderAllLogs();
             appendSystemLog("本地历史记录已全部清空，终端格式化完成。");
+        }
+
+        function clearCacheAndReconnect() {
+            if (confirm("警告：此操作将清除所有本地设置及历史，并重置终端连接。是否继续？")) {
+                localStorage.clear();
+                supabaseClient = null;
+                appendSystemLog("正在强制断开并重启网关...");
+                setTimeout(() => {
+                    location.reload();
+                }, 500);
+            }
         }
     </script>
 </body>
