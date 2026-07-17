@@ -181,14 +181,14 @@
         }
 
         function syncHistoryFromStorage() {
-            const savedHistory = localStorage.getItem(STORAGE_KEY);
-            if (savedHistory) {
-                try { activeHistory = JSON.parse(savedHistory); } catch(e) { activeHistory = []; }
-            } else {
+            try {
+                const savedHistory = localStorage.getItem(STORAGE_KEY);
+                activeHistory = savedHistory ? JSON.parse(savedHistory) : [];
+            } catch(e) {
+                console.error("Storage Access Error:", e);
                 activeHistory = [];
             }
         }
-
         window.onload = function() {
             // 1. 初始化主题
             const savedTheme = localStorage.getItem('agency_theme');
@@ -322,6 +322,7 @@
             const container = document.getElementById('log-container');
             if (!container) return;
 
+            // 每次渲染前强制同步一次数据
             syncHistoryFromStorage();
 
             if (activeHistory.length === 0) {
@@ -329,12 +330,15 @@
                 return;
             }
 
-            container.innerHTML = '';
+            // 使用 DocumentFragment 提升性能，避免闪烁
+            const fragment = document.createDocumentFragment();
             activeHistory.forEach(data => {
                 const isSelf = (data.sender === myName);
-                const element = createRollElement(data, isSelf);
-                container.appendChild(element); 
+                fragment.appendChild(createRollElement(data, isSelf)); 
             });
+            
+            container.innerHTML = ''; 
+            container.appendChild(fragment);
         }
 
         function createRollElement(data, isSelf) {
