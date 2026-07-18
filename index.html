@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- 【新增】强制缓存控制，确保代码更新后用户能实时看到新版本 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>AgencyOS - Triangle Agency Dice Pool</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 Supabase JS 客户端 -->
@@ -77,7 +81,6 @@
 
     <main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 flex flex-col md:flex-row gap-6">
         
-        <!-- 左侧控制台 -->
         <div class="w-full md:w-1/2 flex flex-col gap-6">
             <div class="bg-white dark:bg-neutral-950 border-2 border-neutral-900 dark:border-red-950/60 rounded p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-none flex flex-col justify-between transition-colors">
                 <div>
@@ -123,19 +126,15 @@
                         </label>
                     </div>
 
-                    <div class="border-t border-neutral-300 dark:border-red-950 pt-4 space-y-3">
+                    <div class="border-t border-neutral-300 dark:border-red-950 pt-4">
                         <button onclick="clearAllLogs()" class="w-full bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-900 dark:hover:bg-neutral-850 border border-neutral-300 dark:border-red-950 text-neutral-600 dark:text-neutral-400 py-2 rounded text-xs font-bold transition">
                             格式化本地终端记录
-                        </button>
-                        <button onclick="clearCacheAndReconnect()" class="w-full bg-red-600/10 hover:bg-red-600/20 border border-red-500/50 text-red-600 dark:text-red-400 py-2 rounded text-xs font-bold transition flex items-center justify-center gap-2">
-                            <span>⚠ 清除缓存并重连</span>
                         </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- 右侧日志区 -->
         <div class="w-full md:w-1/2 flex flex-col bg-white dark:bg-neutral-950 border-2 border-neutral-900 dark:border-red-950/60 rounded p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-none h-[550px] md:h-auto transition-colors">
             <div class="flex justify-between items-center mb-4 border-b-2 border-neutral-900 dark:border-red-950 pb-2">
                 <h2 class="text-sm font-black text-neutral-950 dark:text-red-500 tracking-wider">
@@ -202,7 +201,6 @@
 
         window.onload = function() {
             initClientId();
-            
             const savedTheme = localStorage.getItem('agency_theme');
             if (savedTheme === 'dark') { toggleTheme(); }
             const savedName = localStorage.getItem('agency_nick');
@@ -214,7 +212,6 @@
             renderAllLogs();
             initSupabaseSync();
 
-            // 【核心修复】：监听浏览器跨标签页缓存变化，同浏览器多开瞬间秒同步
             window.addEventListener('storage', (e) => {
                 if (e.key === STORAGE_KEY) {
                     renderAllLogs();
@@ -232,9 +229,7 @@
         function initSupabaseSync() {
             try {
                 supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                
                 fetchRecentHistory();
-
                 supabaseClient
                     .channel('public:agency_rolls')
                     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'agency_rolls' }, payload => {
@@ -263,11 +258,7 @@
                     .from('agency_rolls')
                     .select('payload')
                     .limit(40);
-                    
-                if (error) {
-                    console.error("云端历史拉取失败:", error);
-                    return;
-                }
+                if (error) return;
                 
                 if (data && data.length > 0) {
                     let hasNew = false;
@@ -278,25 +269,18 @@
                             hasNew = true;
                         }
                     });
-                    
                     if (hasNew) {
                         activeHistory.sort((a, b) => {
                             const timeA = parseInt(a.id.split('_')[1]) || 0;
                             const timeB = parseInt(b.id.split('_')[1]) || 0;
                             return timeB - timeA;
                         });
-                        
-                        if (activeHistory.length > 40) {
-                            activeHistory = activeHistory.slice(0, 40);
-                        }
-                        
+                        if (activeHistory.length > 40) activeHistory = activeHistory.slice(0, 40);
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(activeHistory));
                         renderAllLogs();
                     }
                 }
-            } catch (err) {
-                console.error("同步历史异常:", err);
-            }
+            } catch (err) {}
         }
 
         async function broadcastRoll(rollData) {
@@ -342,13 +326,11 @@
 
         function handleIncomingRoll(data) {
             if (data.isSecret) return;
-            // 【核心修复】：完全移除了基于 clientId 的强制拦截。现在所有数据都会送入 pushToLocalHistory，由底层的单号(id)去重机制处理。
             pushToLocalHistory(data);
         }
 
         function pushToLocalHistory(data) {
             syncHistoryFromStorage();
-            // 【核心机制】：只要这个单号(data.id)本地没有，才添加并渲染。完美避免各种重复。
             if (!activeHistory.some(item => item.id === data.id)) {
                 activeHistory.unshift(data);
                 if (activeHistory.length > 40) activeHistory.pop();
@@ -379,20 +361,12 @@
             let cardStyle = "";
             let diceClass = "";
             if (isRed) {
-                cardStyle = data.isSuccess 
-                    ? "border-red-400/80 bg-red-50/40 dark:border-red-950/50 dark:bg-red-950/10" 
-                    : "border-neutral-300 dark:border-neutral-900 bg-neutral-50 dark:bg-neutral-950/50";
-                if (data.isThreefold) {
-                    cardStyle = "border-red-600 bg-red-50/90 dark:border-red-500/50 dark:bg-red-950/30 shadow-[4px_4px_0px_0px_#dc2626] dark:shadow-none";
-                }
+                cardStyle = data.isSuccess ? "border-red-400/80 bg-red-50/40 dark:border-red-950/50 dark:bg-red-950/10" : "border-neutral-300 dark:border-neutral-900 bg-neutral-50 dark:bg-neutral-950/50";
+                if (data.isThreefold) cardStyle = "border-red-600 bg-red-50/90 dark:border-red-500/50 dark:bg-red-950/30 shadow-[4px_4px_0px_0px_#dc2626] dark:shadow-none";
                 diceClass = "triangle-dice-red";
             } else {
-                cardStyle = data.isSuccess 
-                    ? "border-blue-400/80 bg-blue-50/40 dark:border-blue-950/50 dark:bg-blue-950/10" 
-                    : "border-neutral-300 dark:border-neutral-900 bg-neutral-50 dark:bg-neutral-950/50";
-                if (data.isThreefold) {
-                    cardStyle = "border-blue-600 bg-blue-50/90 dark:border-blue-500/50 dark:bg-blue-950/30 shadow-[4px_4px_0px_0px_#2563eb] dark:shadow-none";
-                }
+                cardStyle = data.isSuccess ? "border-blue-400/80 bg-blue-50/40 dark:border-blue-950/50 dark:bg-blue-950/10" : "border-neutral-300 dark:border-neutral-900 bg-neutral-50 dark:bg-neutral-950/50";
+                if (data.isThreefold) cardStyle = "border-blue-600 bg-blue-50/90 dark:border-blue-500/50 dark:bg-blue-950/30 shadow-[4px_4px_0px_0px_#2563eb] dark:shadow-none";
                 diceClass = "triangle-dice-blue";
             }
             div.className = `p-4 rounded border-2 ${cardStyle} flex flex-col gap-3 text-sm transition-colors duration-250`;
@@ -400,9 +374,7 @@
             const labelText = isRed ? "现实改写 // ASK THE AGENCY" : "异常能力 // ANOMALY ABILITY";
             const labelColor = isRed ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400";
             let diceHtml = `<div class="flex flex-wrap gap-4 my-1.5">`;
-            data.rolls.forEach(val => {
-                diceHtml += `<div class="${diceClass}"><span class="triangle-text">${val}</span></div>`;
-            });
+            data.rolls.forEach(val => { diceHtml += `<div class="${diceClass}"><span class="triangle-text">${val}</span></div>`; });
             diceHtml += `</div>`;
             let statusBadge = "";
             if (data.isThreefold) {
@@ -421,13 +393,8 @@
                 </div>
                 ${diceHtml}
                 <div class="bg-white/80 dark:bg-black/40 p-2.5 rounded border border-neutral-200 dark:border-neutral-900/50 text-xs text-neutral-600 dark:text-neutral-400 mt-1 flex justify-between items-center transition-colors">
-                    <div>
-                        检测到 “3” 的数量：<span class="${isRed ? 'text-red-650 dark:text-red-500' : 'text-blue-650 dark:text-blue-500'} font-black">${data.countOfThree}</span> 
-                        <span class="mx-1">/</span> 当前燃尽值：<span class="text-neutral-400 font-black">${data.burnout}</span>
-                    </div>
-                    <div class="text-right">
-                        净判定：<span class="${data.netResult >= 1 ? (isRed ? 'text-red-600 dark:text-red-500' : 'text-blue-600 dark:text-blue-500') : 'text-neutral-500'} font-black text-sm">${data.netResult >= 0 ? '+' + data.netResult : data.netResult}</span>
-                    </div>
+                    <div>检测到 “3” 的数量：<span class="${isRed ? 'text-red-650 dark:text-red-500' : 'text-blue-650 dark:text-blue-500'} font-black">${data.countOfThree}</span> / 当前燃尽值：<span class="text-neutral-400 font-black">${data.burnout}</span></div>
+                    <div class="text-right">净判定：<span class="${data.netResult >= 1 ? (isRed ? 'text-red-600 dark:text-red-500' : 'text-blue-600 dark:text-blue-500') : 'text-neutral-500'} font-black text-sm">${data.netResult >= 0 ? '+' + data.netResult : data.netResult}</span></div>
                 </div>
                 ${statusBadge}
             `;
@@ -437,9 +404,7 @@
         function appendSystemLog(text) {
             const container = document.getElementById('log-container');
             const emptyMsg = document.getElementById('empty-state-msg');
-            if (emptyMsg) {
-                emptyMsg.remove();
-            }
+            if (emptyMsg) emptyMsg.remove();
             const div = document.createElement('div');
             div.className = "text-center text-[10px] text-red-700/80 dark:text-red-500/60 py-1.5 bg-red-100/10 dark:bg-red-950/5 rounded border border-red-300/40 dark:border-red-900/10";
             div.innerText = `▲ SYS_LOG: ${text}`;
@@ -451,17 +416,6 @@
             localStorage.removeItem(STORAGE_KEY);
             renderAllLogs();
             appendSystemLog("本地历史记录已全部清空，终端格式化完成。");
-        }
-
-        function clearCacheAndReconnect() {
-            if (confirm("警告：此操作将清除所有本地设置及历史，并重置终端连接。是否继续？")) {
-                localStorage.clear();
-                supabaseClient = null;
-                appendSystemLog("正在强制断开并重启网关...");
-                setTimeout(() => {
-                    location.reload();
-                }, 500);
-            }
         }
     </script>
 </body>
