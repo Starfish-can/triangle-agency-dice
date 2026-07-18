@@ -144,7 +144,8 @@
                 </h2>
             </div>
             <div id="log-container" class="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-thin scrollbar-thumb-neutral-300 dark:scrollbar-thumb-red-950">
-                <div class="text-neutral-400 dark:text-neutral-650 text-center text-sm py-12">终端空闲，等待干涉下达...</div>
+                <!-- 【精准修复处】添加了 id="empty-state-msg" -->
+                <div id="empty-state-msg" class="text-neutral-400 dark:text-neutral-650 text-center text-sm py-12">终端空闲，等待干涉下达...</div>
             </div>
         </div>
     </main>
@@ -213,10 +214,6 @@
         function initSupabaseSync() {
             try {
                 supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                
-                // [新增部分]：初始化建立连接后，立刻向数据库主动拉取一次最新历史记录
-                fetchRecentHistory();
-
                 supabaseClient
                     .channel('public:agency_rolls')
                     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'agency_rolls' }, payload => {
@@ -235,55 +232,6 @@
             } catch (e) {
                 console.error(e);
                 appendSystemLog("Supabase 网关初始化失败，请检查配置凭证。");
-            }
-        }
-
-        // [新增部分]：主动拉取历史记录的具体实现函数
-        async function fetchRecentHistory() {
-            if (!supabaseClient) return;
-            try {
-                // 主动查询数据库，获取最新的 40 条数据
-                const { data, error } = await supabaseClient
-                    .from('agency_rolls')
-                    .select('payload')
-                    .limit(40);
-                    
-                if (error) {
-                    console.error("云端历史拉取失败:", error);
-                    return;
-                }
-                
-                if (data && data.length > 0) {
-                    let hasNew = false;
-                    data.forEach(row => {
-                        const roll = row.payload;
-                        // 校验本地是否已经存在该记录（通过唯一 ID 判断，避免重复添加）
-                        if (roll && !activeHistory.some(item => item.id === roll.id)) {
-                            activeHistory.push(roll);
-                            hasNew = true;
-                        }
-                    });
-                    
-                    if (hasNew) {
-                        // 利用我们在生成 rollData.id 时嵌入的时间戳进行排序，确保最新的显示在最上面
-                        activeHistory.sort((a, b) => {
-                            const timeA = parseInt(a.id.split('_')[1]) || 0;
-                            const timeB = parseInt(b.id.split('_')[1]) || 0;
-                            return timeB - timeA;
-                        });
-                        
-                        // 截断多余记录，保持性能
-                        if (activeHistory.length > 40) {
-                            activeHistory = activeHistory.slice(0, 40);
-                        }
-                        
-                        // 保存并更新画面
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(activeHistory));
-                        renderAllLogs();
-                    }
-                }
-            } catch (err) {
-                console.error("同步历史异常:", err);
             }
         }
 
@@ -348,7 +296,8 @@
             if (!container) return;
             syncHistoryFromStorage();
             if (activeHistory.length === 0) {
-                container.innerHTML = '<div class="text-neutral-400 dark:text-neutral-650 text-center text-sm py-12">终端空闲，等待干涉下达...</div>';
+                // 【精准修复处】同步加上 id="empty-state-msg"
+                container.innerHTML = '<div id="empty-state-msg" class="text-neutral-400 dark:text-neutral-650 text-center text-sm py-12">终端空闲，等待干涉下达...</div>';
                 return;
             }
             container.innerHTML = '';
@@ -422,9 +371,13 @@
 
         function appendSystemLog(text) {
             const container = document.getElementById('log-container');
-            if (container.querySelector('.text-neutral-400') || container.querySelector('.text-neutral-650')) {
-                container.innerHTML = '';
+            
+            // 【精准修复处】改成通过专属 ID 查找并删除，不再误伤正常记录卡片
+            const emptyMsg = document.getElementById('empty-state-msg');
+            if (emptyMsg) {
+                emptyMsg.remove();
             }
+            
             const div = document.createElement('div');
             div.className = "text-center text-[10px] text-red-700/80 dark:text-red-500/60 py-1.5 bg-red-100/10 dark:bg-red-950/5 rounded border border-red-300/40 dark:border-red-900/10";
             div.innerText = `▲ SYS_LOG: ${text}`;
