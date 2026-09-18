@@ -62,6 +62,57 @@
             font-size: 16px;
             line-height: 1;
         }
+        [hidden] { display: none !important; }
+        .burnout-input {
+            width: 80px;
+            padding: 9px 10px;
+            color: #171717;
+            background: #fff5f3;
+            border: 1px solid #e8b9b2;
+            border-radius: 8px;
+            box-shadow: inset 0 1px 3px rgba(127, 29, 29, .05);
+            text-align: center;
+            font-size: 20px;
+            font-weight: 900;
+            transition: background-color .2s, border-color .2s, box-shadow .2s;
+        }
+        .dark .burnout-input { color: #e5e5e5; background: #200c0c; border-color: #713333; }
+        .burnout-input:focus-visible { outline: 2px solid #dc2626; outline-offset: 3px; }
+        .anomaly-controls { display: flex; align-items: center; justify-content: flex-end; }
+        .anomaly-eye { width: 34px; height: 34px; flex: none; }
+        .anomaly-unlock { border: 0; border-radius: 50%; background: transparent; padding: 3px; cursor: pointer; }
+        .anomaly-unlock:hover { background: #dbeafe; }
+        .dark .anomaly-unlock:hover { background: #172554; }
+        .anomaly-unlock:focus-visible { outline: 2px solid #0047bb; outline-offset: 3px; }
+        .d6-toggle { display: flex; align-items: center; gap: 9px; cursor: pointer; color: #0047bb; font-size: 12px; font-weight: 700; }
+        .dark .d6-toggle { color: #93c5fd; }
+        .d6-toggle input { width: 16px; height: 16px; accent-color: #0047bb; }
+        .square-dice-blue {
+            width: 38px; height: 38px; flex: none; display: grid; place-items: center;
+            background: #2563eb; color: #fff; border-radius: 3px; font-size: 18px; font-weight: 900;
+            box-shadow: 0 2px 3px rgba(0, 0, 0, .2);
+        }
+        .blue-fluid { position: relative; isolation: isolate; overflow: hidden; }
+        .blue-fluid::before {
+            content: ''; position: absolute; inset: 0; pointer-events: none; z-index: -1;
+            background:
+                radial-gradient(ellipse at 110% 0%, transparent 32%, rgba(0, 71, 187, .18) 33%, rgba(0, 71, 187, .18) 43%, transparent 44%),
+                radial-gradient(ellipse at -15% 100%, rgba(0, 71, 187, .25) 28%, rgba(56, 189, 248, .15) 29%, rgba(56, 189, 248, .15) 42%, transparent 43%);
+        }
+        .unleash-card { border-color: #0047bb; box-shadow: 3px 3px 0 #0047bb; }
+        .dark .unleash-card { border-color: #60a5fa; box-shadow: 3px 3px 0 #1e40af; }
+        .unleash-badge { background: #0047bb; color: #fff; border: 1px solid #60a5fa; letter-spacing: .22em; }
+        .unlock-dialog {
+            width: min(380px, calc(100vw - 32px)); padding: 28px; border: 1px solid #0047bb;
+            border-radius: 12px; color: #172554; background: #f5f9ff; box-shadow: 0 20px 70px rgba(0, 30, 90, .25);
+        }
+        .dark .unlock-dialog { color: #dbeafe; background: #080f20; border-color: #3b82f6; }
+        .unlock-dialog::backdrop { background: rgba(8, 15, 32, .6); }
+        .unlock-dialog input { width: 100%; margin-top: 20px; padding: 10px 12px; background: transparent; border: 1px solid #93b5e8; border-radius: 5px; }
+        .unlock-dialog input:focus { outline: 2px solid #3b82f6; outline-offset: 2px; }
+        .unlock-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; }
+        .unlock-actions button { padding: 7px 14px; border: 1px solid #93b5e8; border-radius: 5px; font-size: 12px; }
+        .unlock-actions button[type=submit] { background: #0047bb; color: #fff; border-color: #0047bb; }
     </style>
 </head>
 <body id="main-body" class="agency-bg-light text-neutral-900 min-h-screen flex flex-col font-mono selection:bg-red-600 selection:text-white transition-colors duration-350">
@@ -106,9 +157,9 @@
                     </div>
 
                     <div class="mb-6 bg-neutral-50 dark:bg-black p-4 rounded border border-neutral-250 dark:border-neutral-900 transition-colors">
-                        <label class="block text-xs text-neutral-600 dark:text-neutral-400 font-black mb-2">当前燃尽值 / BURNOUT VALUE</label>
+                        <label for="burnout-value" class="block text-xs text-neutral-600 dark:text-neutral-400 font-black mb-2">当前燃尽值 / BURNOUT VALUE</label>
                         <div class="flex flex-wrap items-center gap-3">
-                            <input type="number" id="burnout-value" min="0" max="6" value="0" onchange="saveBurnout()" class="w-20 bg-white dark:bg-neutral-950 border-2 border-neutral-900 dark:border-red-950 text-center text-lg font-black text-red-650 dark:text-red-500 rounded p-2 focus:outline-none focus:border-red-650">
+                            <input type="number" id="burnout-value" min="0" max="6" value="0" onchange="saveBurnout()" class="burnout-input">
                             <span class="text-xs text-neutral-500 dark:text-neutral-400">（判定成功标准：掷出的 “3” 数量大于或等于该数值 + 1）</span>
                         </div>
                     </div>
@@ -119,11 +170,21 @@
                 </div>
 
                 <div class="space-y-4 mt-6">
-                    <div class="space-y-3 bg-neutral-50 dark:bg-black p-4 rounded border border-neutral-250 dark:border-neutral-900">
+                    <div class="flex flex-wrap items-center justify-between gap-3 bg-neutral-50 dark:bg-black p-4 rounded border border-neutral-250 dark:border-neutral-900">
                         <label class="flex items-center gap-2.5 cursor-pointer text-xs text-neutral-600 dark:text-neutral-400 font-bold">
                             <input type="checkbox" id="is-secret" class="w-4 h-4 rounded accent-red-600 bg-neutral-200 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-800">
                             <span>暗骰：结果仅向自己公开</span>
                         </label>
+                        <div id="anomaly-controls" class="anomaly-controls" hidden>
+                            <button id="anomaly-unlock" type="button" class="anomaly-unlock" aria-label="解锁异常能力" onclick="openAnomalyDialog()">
+                                <svg class="anomaly-eye" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="18" fill="#0047bb"/><path d="M6 18Q18 5 30 18Q18 31 6 18Z" fill="none" stroke="white" stroke-width="1.6" stroke-linejoin="round"/><circle cx="18" cy="18" r="3.5" fill="none" stroke="white" stroke-width="1.6"/></svg>
+                            </button>
+                            <label id="d6-toggle" class="d6-toggle" hidden>
+                                <input type="checkbox" id="use-d6" onchange="saveD6Preference()">
+                                <svg class="anomaly-eye" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="18" fill="#0047bb"/><path d="M6 18Q18 5 30 18Q18 31 6 18Z" fill="none" stroke="white" stroke-width="1.6" stroke-linejoin="round"/><circle cx="18" cy="18" r="3.5" fill="none" stroke="white" stroke-width="1.6"/></svg>
+                                <span>六面骰</span>
+                            </label>
+                        </div>
                     </div>
 
                     <div class="border-t border-neutral-300 dark:border-red-950 pt-4">
@@ -147,6 +208,18 @@
         </div>
     </main>
 
+    <dialog id="anomaly-dialog" class="unlock-dialog blue-fluid" aria-labelledby="anomaly-question">
+        <form onsubmit="unlockAnomaly(event)">
+            <label id="anomaly-question" for="anomaly-answer" class="block font-black tracking-wider">我的颜色是什么？</label>
+            <input id="anomaly-answer" type="text" autocomplete="off" spellcheck="false" maxlength="32" aria-describedby="anomaly-error" required>
+            <p id="anomaly-error" role="status" class="text-xs mt-3" hidden>颜色不正确，请再试一次。</p>
+            <div class="unlock-actions">
+                <button type="button" onclick="document.getElementById('anomaly-dialog').close()">取消</button>
+                <button type="submit">确认</button>
+            </div>
+        </form>
+    </dialog>
+
     <footer class="border-t border-neutral-300 dark:border-neutral-950 bg-neutral-50 dark:bg-black text-center py-4 text-[10px] text-neutral-500 dark:text-neutral-700 uppercase tracking-widest transition-colors">
         AgencyOS v4.20 // Supabase Data Synchronization Engine // Sync Active
     </footer>
@@ -169,6 +242,60 @@
         let realtimeSubscribed = false;
         let historyFailed = false;
         let realtimeFailed = false;
+        const D6_UNLOCK_KEY = 'agency_d6_unlocked';
+        const D6_ENABLED_KEY = 'agency_d6_enabled';
+        let d6Unlocked = false;
+
+        function updateAnomalyControls() {
+            const isAnomaly = document.querySelector('input[name="roll-type"]:checked').value === 'anomaly';
+            document.getElementById('anomaly-controls').hidden = !isAnomaly;
+            document.getElementById('anomaly-unlock').hidden = d6Unlocked;
+            document.getElementById('d6-toggle').hidden = !d6Unlocked;
+            document.getElementById('use-d6').disabled = !isAnomaly || !d6Unlocked;
+            if (!isAnomaly) document.getElementById('anomaly-dialog').close();
+        }
+
+        function openAnomalyDialog() {
+            if (document.querySelector('input[name="roll-type"]:checked').value !== 'anomaly') return;
+            document.getElementById('anomaly-answer').value = '';
+            document.getElementById('anomaly-error').hidden = true;
+            document.getElementById('anomaly-dialog').showModal();
+            document.getElementById('anomaly-answer').focus();
+        }
+
+        function unlockAnomaly(event) {
+            event.preventDefault();
+            if (document.querySelector('input[name="roll-type"]:checked').value !== 'anomaly') return;
+            const answer = document.getElementById('anomaly-answer');
+            if (!/^#?u0047bb$/i.test(answer.value.trim())) {
+                document.getElementById('anomaly-error').hidden = false;
+                answer.focus();
+                return;
+            }
+            d6Unlocked = true;
+            localStorage.setItem(D6_UNLOCK_KEY, 'true');
+            document.getElementById('anomaly-dialog').close();
+            updateAnomalyControls();
+            document.getElementById('use-d6').focus();
+        }
+
+        function saveD6Preference() {
+            localStorage.setItem(D6_ENABLED_KEY, String(document.getElementById('use-d6').checked));
+        }
+
+        function calculateRoll(rolls, burnout, d6 = null) {
+            const d4Threes = rolls.filter(value => value === 3).length;
+            const countOfThree = d4Threes + (d6 === 3 ? 1 : d6 === 6 ? 2 : 0);
+            const naturalThrees = d4Threes + (d6 === 3 ? 1 : 0);
+            const isThreefold = countOfThree === 3;
+            const netResult = countOfThree - burnout;
+            return {
+                countOfThree, naturalThrees, isThreefold, netResult,
+                isSuccess: isThreefold || netResult >= 1,
+                isUnleash: countOfThree === 7,
+                chaos: isThreefold ? 0 : 6 - d4Threes + (d6 !== null && d6 !== 3 && d6 !== 6 ? 1 : 0) + burnout
+            };
+        }
 
         function setSyncStatus(state, message) {
             const statusTag = document.getElementById('status-tag');
@@ -217,20 +344,17 @@
                 !['reality', 'anomaly'].includes(data.rollType) || !Number.isInteger(data.burnout) ||
                 data.burnout < 0 || data.burnout > 6) return null;
 
-            const countOfThree = data.rolls.filter(value => value === 3).length;
-            const isThreefold = countOfThree === 3;
-            const netResult = countOfThree - data.burnout;
+            const d6 = data.d6 ?? null;
+            if (d6 !== null && (data.rollType !== 'anomaly' || !Number.isInteger(d6) || d6 < 1 || d6 > 6)) return null;
             return {
                 id: data.id,
                 clientId: typeof data.clientId === 'string' && data.clientId.length <= 100 ? data.clientId : null,
                 sender: data.sender.trim(),
                 rolls: data.rolls,
                 rollType: data.rollType,
-                countOfThree,
+                d6,
                 burnout: data.burnout,
-                netResult,
-                isThreefold,
-                isSuccess: isThreefold || netResult >= 1,
+                ...calculateRoll(data.rolls, data.burnout, d6),
                 isSecret: data.isSecret === true,
                 timestamp: typeof data.timestamp === 'string' ? data.timestamp.slice(0, 30) : ''
             };
@@ -291,6 +415,10 @@
             if (savedBurnout !== null) {
                 document.getElementById('burnout-value').value = savedBurnout;
             }
+            d6Unlocked = localStorage.getItem(D6_UNLOCK_KEY) === 'true';
+            document.getElementById('use-d6').checked = d6Unlocked && localStorage.getItem(D6_ENABLED_KEY) === 'true';
+            document.querySelectorAll('input[name="roll-type"]').forEach(input => input.addEventListener('change', updateAnomalyControls));
+            updateAnomalyControls();
             syncHistoryFromStorage();
             renderAllLogs();
             initSupabaseSync();
@@ -414,26 +542,21 @@
             localStorage.setItem('agency_burnout', burnout);
             const rollType = document.querySelector('input[name="roll-type"]:checked').value;
             const rolls = [];
-            let countOfThree = 0;
             for (let i = 0; i < 6; i++) {
                 const val = Math.floor(Math.random() * 4) + 1;
                 rolls.push(val);
-                if (val === 3) countOfThree++;
             }
-            const isThreefold = (countOfThree === 3);
-            const netResult = countOfThree - burnout;
-            const isSuccess = isThreefold || (netResult >= 1);
+            const useD6 = rollType === 'anomaly' && d6Unlocked && document.getElementById('use-d6').checked;
+            const d6 = useD6 ? Math.floor(Math.random() * 6) + 1 : null;
             const rollData = {
                 id: "roll_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
                 clientId: myClientId, 
                 sender: myName,
                 rolls: rolls,
                 rollType: rollType, 
-                countOfThree: countOfThree,
+                d6,
                 burnout: burnout,
-                netResult: netResult,
-                isThreefold: isThreefold,
-                isSuccess: isSuccess,
+                ...calculateRoll(rolls, burnout, d6),
                 isSecret: document.getElementById('is-secret').checked,
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
             };
@@ -493,14 +616,18 @@
                 diceClass = "triangle-dice-blue";
             }
             div.className = `p-4 rounded border-2 ${cardStyle} flex flex-col gap-3 text-sm transition-colors duration-250`;
+            if (data.isUnleash) div.classList.add('unleash-card', 'blue-fluid');
             let tag = isSelf ? `<span class="text-[10px] bg-neutral-900 dark:bg-white/10 text-white px-1.5 py-0.5 rounded font-bold tracking-widest">YOU</span>` : "";
             const labelText = isRed ? "现实改写 // ASK THE AGENCY" : "异常能力 // ANOMALY ABILITY";
             const labelColor = isRed ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400";
-            let diceHtml = `<div class="flex flex-wrap gap-4 my-1.5">`;
+            let diceHtml = `<div class="flex flex-wrap items-end gap-4 my-1.5">`;
             data.rolls.forEach(val => { diceHtml += `<div class="${diceClass}"><span class="triangle-text">${val}</span></div>`; });
+            if (data.d6 != null) diceHtml += `<div class="square-dice-blue" aria-label="六面骰：${data.d6}">${data.d6}</div>`;
             diceHtml += `</div>`;
             let statusBadge = "";
-            if (data.isThreefold) {
+            if (data.isUnleash) {
+                statusBadge = `<div class="unleash-badge blue-fluid mt-2 text-center py-2.5 rounded font-black text-sm">UNL3ASH</div>`;
+            } else if (data.isThreefold) {
                 const sublimationBg = isRed ? "bg-red-600 dark:bg-red-950 border-red-700 dark:border-red-500 text-white dark:text-red-300" : "bg-blue-600 dark:bg-blue-950 border-blue-700 dark:border-blue-500 text-white dark:text-blue-300";
                 statusBadge = `<div class="mt-2 text-center py-2.5 ${sublimationBg} border rounded font-black text-xs tracking-widest">▲▲▲ 三重升华 // TRISENDENCE ▲▲▲</div>`;
             } else if (data.isSuccess) {
@@ -515,8 +642,8 @@
                     <span class="font-bold ${labelColor}">${labelText}</span>
                 </div>
                 ${diceHtml}
-                <div class="bg-white/80 dark:bg-black/40 p-2.5 rounded border border-neutral-200 dark:border-neutral-900/50 text-xs text-neutral-600 dark:text-neutral-400 mt-1 flex justify-between items-center transition-colors">
-                    <div>检测到 “3” 的数量：<span class="${isRed ? 'text-red-650 dark:text-red-500' : 'text-blue-650 dark:text-blue-500'} font-black">${data.countOfThree}</span> / 当前燃尽值：<span class="text-neutral-400 font-black">${data.burnout}</span></div>
+                <div class="bg-white/80 dark:bg-black/40 p-2.5 rounded border border-neutral-200 dark:border-neutral-900/50 text-xs text-neutral-600 dark:text-neutral-400 mt-1 flex flex-wrap gap-2 justify-between items-center transition-colors">
+                    <div>检测到 “3” 的数量：<span class="${isRed ? 'text-red-600 dark:text-red-500' : 'text-blue-600 dark:text-blue-500'} font-black">${data.countOfThree}</span> / 产生混沌值：<span class="text-blue-600 dark:text-blue-400 font-black">${data.chaos}</span></div>
                     <div class="text-right">净判定：<span class="${data.netResult >= 1 ? (isRed ? 'text-red-600 dark:text-red-500' : 'text-blue-600 dark:text-blue-500') : 'text-neutral-500'} font-black text-sm">${data.netResult >= 0 ? '+' + data.netResult : data.netResult}</span></div>
                 </div>
                 ${statusBadge}
@@ -544,3 +671,4 @@
     </script>
 </body>
 </html>
+
