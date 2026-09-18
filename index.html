@@ -3,6 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="agency-release" content="2026.09.18.1">
+    <script>
+        // 发布时，此版本号（上方 meta）与 version.js 必须一致。
+        window.agencyPendingSends = 0;
+        (() => {
+            if (!/^https?:$/.test(location.protocol)) return;
+            const currentRelease = document.querySelector('meta[name="agency-release"]').content;
+            const directory = new URL('./', location.href);
+            let checking = false;
+            let lastCheck = 0;
+            let navigating = false;
+            async function checkForUpdate() {
+                if (checking || navigating || document.visibilityState === 'hidden' || Date.now() - lastCheck < 15000) return;
+                checking = true;
+                lastCheck = Date.now();
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 10000);
+                try {
+                    const versionUrl = new URL('version.js', directory);
+                    versionUrl.searchParams.set('_check', String(Date.now()));
+                    const response = await fetch(versionUrl, { cache: 'no-store', signal: controller.signal });
+                    if (!response.ok) return;
+                    const match = (await response.text()).match(/window\.AGENCY_SITE_RELEASE\s*=\s*["']([\w.-]+)["']/);
+                    if (!match || match[1] === currentRelease) return;
+                    const release = match[1];
+                    // 同一次部署的 HTML 和版本文件均可用后才跳转。
+                    const nextUrl = new URL('index.html', directory);
+                    nextUrl.searchParams.set('v', release);
+                    const probeUrl = new URL(nextUrl);
+                    probeUrl.searchParams.set('_check', String(Date.now()));
+                    const page = await fetch(probeUrl, { cache: 'no-store', signal: controller.signal });
+                    if (!page.ok) return;
+                    const remoteDocument = new DOMParser().parseFromString(await page.text(), 'text/html');
+                    if (remoteDocument.querySelector('meta[name="agency-release"]')?.content !== release) return;
+                    // 留待下一次检查，避免打断正在输入、解锁或上传的掷骰。
+                    if (window.agencyPendingSends > 0 || document.querySelector('dialog[open]') ||
+                        /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName)) return;
+                    const retryKey = 'agency_update_attempt:' + directory.pathname + ':' + release;
+                    try {
+                        const attempted = Number(sessionStorage.getItem(retryKey)) || 0;
+                        if (Date.now() - attempted < 300000) return;
+                        sessionStorage.setItem(retryKey, String(Date.now()));
+                    } catch (_) { return; }
+                    const destination = new URL(location.href);
+                    destination.searchParams.set('v', release);
+                    destination.searchParams.set('_refresh', String(Date.now()));
+                    navigating = true;
+                    location.replace(destination.href);
+                } catch (_) {
+                    // 离线或部署暂未完成时保留当前页面，下次检查重试。
+                } finally {
+                    clearTimeout(timeout);
+                    checking = false;
+                }
+            }
+            window.addEventListener('pageshow', checkForUpdate);
+            window.addEventListener('focus', checkForUpdate);
+            window.addEventListener('online', checkForUpdate);
+            document.addEventListener('visibilitychange', checkForUpdate);
+            setInterval(checkForUpdate, 60000);
+            checkForUpdate();
+        })();
+    </script>
     <!-- 【新增】强制缓存控制，确保代码更新后用户能实时看到新版本 -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -522,6 +585,7 @@
 
         async function broadcastRoll(rollData) {
             if (!supabaseClient) return;
+            window.agencyPendingSends = (window.agencyPendingSends || 0) + 1;
             try {
                 const { error } = await supabaseClient
                     .from('agency_rolls')
@@ -532,6 +596,8 @@
                 console.error("广播失败:", error);
                 setSyncStatus('error', 'SYNC ERROR // 本次未同步');
                 appendSystemLog('本次掷骰仅保存在本地，未能同步给其他玩家。');
+            } finally {
+                window.agencyPendingSends--;
             }
         }
 
@@ -671,4 +737,3 @@
     </script>
 </body>
 </html>
-
